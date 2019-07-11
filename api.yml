@@ -1,0 +1,341 @@
+openapi: 3.0.1
+info:
+  title: Identity service
+  description: 'The identity service enable identity management: |
+    - CRUD operation
+    - Account assocation management'
+  termsOfService: http://swagger.io/terms/
+  contact:
+    email: apiteam@swagger.io
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+
+externalDocs:
+  description: Find out more about Swagger
+  url: http://swagger.io
+  
+servers:
+  - description: "Localhost server"
+    url: http://localhost:3000
+
+paths:
+  /identities:
+    get:
+      summary: Return a list of identites
+      operationId: listIdentities
+      parameters:
+        - name: owner.id
+          description: "ID of all owner accounts"
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              format: base64-url
+              
+        - name: user.id
+          description: "If defined, then return all accounts that is used by at least one of such user."
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              format: base64-url
+              
+        - name: id
+          description: "ID of all identities to retrieve"
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              format: base64-url
+
+        - name:  creation-date.max
+          in: query
+          schema:
+            type: string
+            format: "ISO 8601 Extended Format"
+
+        - name: creation-date.min
+          in: query
+          schema:
+            type: string
+            format: "ISO 8601 Extended Format"
+          
+        - name: deletion-date.min
+          in: query
+          schema:
+            type: string
+            format: "ISO 8601 Extended Format"
+          
+        - name: deletion-date.max
+          in: query
+          schema:
+            type: string
+            format: "ISO 8601 Extended Format"
+          
+      responses:
+        200:
+          description: List of all identities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Identity"
+    
+  /identity:
+    put:
+      summary: "Create a new identity"
+      operationId: createIdentity
+      requestBody:
+        description: "Information of the identity to create"
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profile:
+                  type: object
+                  properties:
+                    firstName:
+                      type: string
+                      
+                    lastName:
+                      type: string
+                    
+                    birthGender:
+                      type: string
+                      enum:
+                        - MALE
+                        - FEMALE
+                  
+      responses:
+        200:
+          description: Identity created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Identity"
+
+        400:
+          description: Invalid data provided
+          content:
+            application/json:
+              schema:
+                type: array
+                example:
+                  - code: UNKNOWN_GENDER
+                    detail: "Unknown gender \"XX\""
+                items:
+                  type: object
+                  properties:
+                    code:
+                      type: string
+                      description: "Code of the error"
+                      enum: 
+                        - UNKNOWN_TYPE
+                        
+                    detail:
+                      type: string
+                      description: "Label of the error"
+    
+  /identity/{id}:
+    get:
+      summary: "Return information about an identity"
+      operationId: getIdentity
+      parameters:
+        - name: id
+          in: path
+          description: "ID of identity to return"
+          required: true
+          schema:
+            type: string
+            format: base64-url
+      responses:
+        200:
+          description: "Identity information"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Identity"
+                
+        404:
+          description: "Identity not found"
+          
+    post:
+      summary: "Update an identity"
+      operationId: updateIdentity
+      parameters:
+        - name: id
+          in: path
+          description: "ID of account to return"
+          required: true
+          schema:
+            type: string
+            format: base64-url
+      requestBody:
+        description: "Information to update. Set a field to null to empty a field."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Identity"
+              
+      responses:
+        200:
+          description: "Update successful"
+          
+        404:
+          description: "Identity not found"
+          
+    delete:
+      summary: "Delete an identity"
+      operationId: deleteIdentity
+      parameters:
+        - name: id
+          in: path
+          description: "ID of identity to delete"
+          required: true
+          schema:
+            type: string
+            format: base64-url
+      responses:
+        200:
+          description: "Delete successful"
+          
+        404:
+          description: "Identity not found"
+          
+  /identity/{id}/users:
+    get:
+      summary: List all users of an identity
+      operationId: listUser
+      parameters:
+        - name: id
+          in: path
+          description: "ID of the identity"
+          required: true
+          schema:
+            type: string
+            format: base64-url
+            
+      responses:
+        200:
+          description: "List of users"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  description: "ID of all users"
+                  format: base64-url
+                
+        404:
+          description: "Identity not found"
+      
+    put:
+      summary: Declare one or several new users of an identity.
+      operationId: addUser
+      parameters:
+        - name: id
+          in: path
+          description: "ID of the identity"
+          required: true
+          schema:
+            type: string
+            format: base64-url
+            
+      requestBody:
+        description: "Users to add"
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+                description: "ID of the account to declare as users. No check will be perform to ensure that such account exists"
+                format: base64-url
+                
+      responses:
+        200:
+          description: User added
+
+    delete:
+      summary: "Delete a users of an identity."
+      operationId: removeUser
+      parameters:
+        - name: id
+          in: path
+          description: "ID of the identity"
+          required: true
+          schema:
+            type: string
+            format: base64-url
+            
+        - name: userId
+          in: query
+          description: "ID of the user to delete"
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+              format: base64-url
+                
+      responses:
+        200:
+          description: User removed
+          
+        400:
+          description: Invalid data provided
+          content:
+            application/json:
+              schema:
+                type: array
+                example:
+                  - code: NOT_AN_ACCOUNT_ID
+                    detail: "The ID are not account ID: "
+                items:
+                  type: object
+                  properties:
+                    code:
+                      type: string
+                      description: "Code of the error"
+                      enum: 
+                        - NOT_AN_ACCOUNT_ID
+                        
+                    detail:
+                      type: string
+                      description: "Label of the error"
+          
+        404:
+          description: Identity not found
+  
+
+components:
+  schemas:
+    Identity:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID of the identity
+          
+        profile:
+          type: object
+          properties:
+            firstName:
+              type: string
+              
+            lastName:
+              type: string
+          
+        creationDate:
+          type: string
+          
+        deletionDate:
+          type: string
